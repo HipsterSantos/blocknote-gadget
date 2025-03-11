@@ -3,13 +3,15 @@ import { BlockNoteView, SuggestionMenuController, useCreateBlockNote } from "@bl
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 import { GadgetApi } from "./gadgetApi";
+import { GadgetProvider, useGadgetState } from "./state";
 
-export default function App() {
+function Editor() {
+  const { state } = useGadgetState();
   const editor = useCreateBlockNote({
-    initialContent: [{ type: "paragraph", content: "Type '/' to start" }],
+    initialContent: state.initialContent,
   });
 
-  let api; // Store api instance outside useEffect to avoid re-creation
+  let api;
   useEffect(() => {
     api = new GadgetApi(editor);
     window.parent.postMessage({ type: "GADGET_READY" }, "*");
@@ -25,5 +27,13 @@ export default function App() {
         />
       </BlockNoteView>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <GadgetProvider>
+      <Editor />
+    </GadgetProvider>
   );
 }

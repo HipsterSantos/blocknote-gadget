@@ -1,24 +1,32 @@
 import { filterSuggestionItems } from "@blocknote/core";
+import { useGadgetState } from "./state";
 
 export class GadgetApi {
-  constructor(editor, config = {}) {
+  constructor(editor) {
     this.editor = editor;
-    this.serverUrl = config.serverUrl || "ws://localhost:8080";
-    this.protocol = config.protocol || "ws";
     this.ws = null;
-    this.customSlashItems = new Map(); // Store custom slash menu items
     this.connectToServer();
     window.addEventListener("message", this.handleParentMessage.bind(this));
   }
 
+  // Access global state
+  getState() {
+    return useGadgetState().state;
+  }
+
+  getDispatch() {
+    return useGadgetState().dispatch;
+  }
+
   // Post message to parent
   postToParent(data) {
-    window.parent.postMessage(data, "*"); // Replace "*" with specific origin in production
+    window.parent.postMessage(data, "*");
   }
 
   // Event handlers
   eventHandlers = {
     CONFIGURE: async (payload) => {
+      this.getDispatch()({ type: "CONFIGURE", payload });
       await this.configure(payload);
     },
     GET_CONTENT: async () => {
@@ -31,11 +39,12 @@ export class GadgetApi {
       await this.sendToServer({ type: "CONTENT_SET", content: payload });
     },
     SET_INITIAL_CONTENT: async (payload) => {
+      this.getDispatch()({ type: "SET_INITIAL_CONTENT", payload });
       this.editor.replaceBlocks(this.editor.document, payload);
       this.postToParent({ type: "INITIAL_CONTENT_SET" });
     },
     REGISTER_SLASH_ITEM: async (payload) => {
-      this.registerSlashItem(payload);
+      this.getDispatch()({ type: "REGISTER_SLASH_ITEM", payload });
       this.postToParent({ type: "SLASH_ITEM_REGISTERED", payload: payload.title });
     },
     INSERT_BLOCK: async (payload) => {
@@ -44,7 +53,6 @@ export class GadgetApi {
     },
   };
 
-  // Handle parent messages
   async handleParentMessage(event) {
     const { type, payload } = event.data || {};
     const handler = this.eventHandlers[type];
@@ -59,30 +67,26 @@ export class GadgetApi {
     }
   }
 
-  // Configure server and editor
-  async configure({ serverUrl, protocol, initialContent }) {
-    this.serverUrl = serverUrl || this.serverUrl;
-    this.protocol = protocol || this.protocol;
-    if (initialContent) {
-      this.editor.replaceBlocks(this.editor.document, initialContent);
-    }
-    await this.connectToServer();
+  async configure() {
+    const { serverUrl, protocol } = this.getState();
+    await this.connectToServer(serverUrl, protocol);
   }
 
-  // Connect to server (WebSocket for collaboration)
-  async connectToServer() {
+  async connectToServer(serverUrl, protocol) {
     if (this.ws) {
       this.ws.close();
       await new Promise((resolve) => (this.ws.onclose = resolve));
     }
-    if (this.protocol === "ws") {
-      this.ws = new WebSocket(this.serverUrl);
+    if (protocol === "ws") {
+      this.ws = new WebSocket(serverUrl);
       await new Promise((resolve, reject) => {
         this.ws.onopen = () => {
+          this.getDispatch()({ type: "SERVER_CONNECTED" });
           this.postToParent({ type: "SERVER_CONNECTED" });
           resolve();
         };
         this.ws.onerror = (err) => {
+          this.getDispatch()({ type: "SERVER_ERROR", payload: `WebSocket error: ${err.message}` });
           this.postToParent({ type: "ERROR", payload: `WebSocket error: ${err.message}` });
           reject(err);
         };
@@ -91,7 +95,6 @@ export class GadgetApi {
     }
   }
 
-  // Handle server messages (collaboration)
   async handleServerMessage(data) {
     if (data.type === "CONTENT_UPDATE" && JSON.stringify(data.content) !== JSON.stringify(this.editor.document)) {
       this.editor.replaceBlocks(this.editor.document, data.content);
@@ -99,34 +102,26 @@ export class GadgetApi {
     }
   }
 
-  // Send to server
   async sendToServer(data) {
-    if (this.protocol === "ws" && this.ws && this.ws.readyState === WebSocket.OPEN) {
+    const { protocol } = this.getState();
+    if (protocol === "ws" && this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }
   }
 
-  // Register custom slash menu item
-  registerSlashItem({ title, group, aliases, subtext, icon, block }) {
-    const item = {
-      title,
-      group: group || "Custom",
-      aliases: aliases || [],
-      subtext: subtext || "",
-      icon: icon || null, // Icon as string (e.g., serialized React component)
-      onItemClick: () => this.insertBlock(block),
-    };
-    this.customSlashItems.set(title, item);
+  registerSlashItem(payload) {
+    // Already handled by reducer
   }
 
-  // Get all slash menu items
   getSlashMenuItems(query) {
-    const defaultItems = []; // Could include getDefaultReactSlashMenuItems(this.editor) if desired
-    const customItems = Array.from(this.customSlashItems.values());
-    return filterSuggestionItems([...defaultItems, ...customItems], query);
+    const { slashItems } = this.getState();
+    const customItems = Array.from(slashItems.values()).map((item) => ({
+      ...item,
+      onItemClick: () => this.insertBlock(item.block),
+    }));
+    return filterSuggestionItems(customItems, query);
   }
 
-  // Insert a block
   insertBlock(block) {
     const currentBlock = this.editor.getTextCursorPosition().block;
     this.editor.insertBlocks([block], currentBlock, "after");
