@@ -1,82 +1,29 @@
-import {
-  BlockNoteEditor,
-  filterSuggestionItems,
-  PartialBlock,
-} from "@blocknote/core";
+import React, { useEffect } from "react";
+import { BlockNoteView, SuggestionMenuController, useCreateBlockNote } from "@blocknote/react";
 import "@blocknote/core/fonts/inter.css";
-import {
-  DefaultReactSuggestionItem,
-  getDefaultReactSlashMenuItems,
-  SuggestionMenuController,
-  useCreateBlockNote,
-} from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { HiOutlineGlobeAlt } from "react-icons/hi";
- 
-// Custom Slash Menu item to insert a block after the current one.
-const insertHelloWorldItem = (editor) => ({
-  title: "Insert Hello World",
-  onItemClick: () => {
-    // Block that the text cursor is currently in.
-    const currentBlock = editor.getTextCursorPosition().block;
- 
-    // New block we want to insert.
-    const helloWorldBlock= {
-      type: "paragraph",
-      content: [{ type: "text", text: "Hello World", styles: { bold: true } }],
-    };
- 
-    // Inserting the new block after the current one.
-    editor.insertBlocks([helloWorldBlock], currentBlock, "after");
-  },
-  aliases: ["helloworld", "hw"],
-  group: "Other",
-  icon: <HiOutlineGlobeAlt size={18} />,
-  subtext: "Used to insert a block with 'Hello World' below.",
-});
- 
-// List containing all default Slash Menu Items, as well as our custom one.
-const getCustomSlashMenuItems = (
-  editor
-) => [
-  ...getDefaultReactSlashMenuItems(editor),
-  insertHelloWorldItem(editor),
-];
- 
+import { GadgetApi } from "./gadgetApi";
+
 export default function App() {
-  // Creates a new editor instance.
   const editor = useCreateBlockNote({
-    initialContent: [
-      {
-        type: "paragraph",
-        content: "Welcome to this demo!",
-      },
-      {
-        type: "paragraph",
-        content: "Press the '/' key to open the Slash Menu",
-      },
-      {
-        type: "paragraph",
-        content: "Notice the new 'Insert Hello World' item - try it out!",
-      },
-      {
-        type: "paragraph",
-      },
-    ],
+    initialContent: [{ type: "paragraph", content: "Type '/' to start" }],
   });
- 
-  // Renders the editor instance.
+
+  let api; // Store api instance outside useEffect to avoid re-creation
+  useEffect(() => {
+    api = new GadgetApi(editor);
+    window.parent.postMessage({ type: "GADGET_READY" }, "*");
+    return () => api.destroy();
+  }, [editor]);
+
   return (
-    <BlockNoteView editor={editor} slashMenu={false}>
-      <SuggestionMenuController
-        triggerCharacter={"/"}
-        // Replaces the default Slash Menu items with our custom ones.
-        getItems={async (query) =>
-          filterSuggestionItems(getCustomSlashMenuItems(editor), query)
-        }
-      />
-    </BlockNoteView>
+    <div style={{ width: "100%", border: "1px solid #e0e0e0", borderRadius: "4px" }}>
+      <BlockNoteView editor={editor} slashMenu={false}>
+        <SuggestionMenuController
+          triggerCharacter="/"
+          getItems={(query) => api.getSlashMenuItems(query)}
+        />
+      </BlockNoteView>
+    </div>
   );
 }
- 

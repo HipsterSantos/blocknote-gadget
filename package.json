@@ -1,11 +1,8 @@
 {
-  "name": "blocknote-cra",
+  "name": "blocknote-gadget",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@blocknote/core": "^0.25.1",
-    "@blocknote/mantine": "^0.25.1",
-    "@blocknote/react": "^0.25.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
