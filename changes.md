@@ -1,23 +1,20 @@
 # @hipstersantos/blocknote-gadget
 
-A customizable **BlockNote editor gadget** with collaboration support. Designed to enhance your React applications with a powerful, extensible editor featuring real-time collaboration and a modern slash-menu interface.
+A customizable, collaborative BlockNote editor gadget for React applications, published as an npm package under the `@hipstersantos` organization.
 
-## ✨ Features
+## Features
+- Custom slash menu items
+- Easy block insertion
+- Configurable initial content
+- Real-time collaboration via WebSocket
+- Extensible protocol support (HTTP, gRPC placeholders)
 
-- 📄 **Customizable BlockNote Editor**: Extend and modify editor behavior with ease.
-- 🤝 **Collaboration Support**: Enable real-time collaborative editing.
-- 🚀 **Slash Menu Integration**: Simplify content creation using the intuitive slash-menu.
-- 📚 **React Compatible**: Seamlessly integrates with React 18.
-- ✅ **Testing Utilities**: Preconfigured with @testing-library for smooth testing.
-
-## 📦 Installation
-
-Ensure you have `react` and `react-dom` installed in your project.
-
+## Installation
 ```bash
 npm install @hipstersantos/blocknote-gadget
 ```
 
+## Usage
 
 ### Step 1: Create a Wrapper HTML
 Create `public/gadget.html` in your project:
@@ -137,6 +134,7 @@ window.addEventListener("message", (event) => {
   }
 });
 ```
+
 ## Step 5: Create a Test Project
 
 Let’s create a simple Vite React project to test the gadget.
@@ -233,77 +231,7 @@ export default defineConfig({
 });
 ```
 
+## License
 
-## 🚀 Usage
-
-Here's a basic example to get started with `@hipstersantos/blocknote-gadget`:
-
-```jsx
-import React from "react";
-import { BlockNoteEditor } from "@hipstersantos/blocknote-gadget";
-
-const App = () => {
-  return (
-    <div>
-      <h1>My BlockNote Editor</h1>
-      <BlockNoteEditor />
-    </div>
-  );
-};
-
-export default App;
-```
-
-### Example with Custom Slash Menu
-
-```jsx
-import React from "react";
-import { BlockNoteEditor } from "@hipstersantos/blocknote-gadget";
-
-const customItems = [
-  { label: "Insert Image", action: () => console.log("Add Image") },
-  { label: "Insert Table", action: () => console.log("Add Table") },
-];
-
-const App = () => {
-  return <BlockNoteEditor slashMenuItems={customItems} />;
-};
-
-export default App;
-```
-
-## 📚 API Reference
-
-### `<BlockNoteEditor />`
-
-| Prop               | Type            | Description                             |
-|--------------------|-----------------|-----------------------------------------|
-| `slashMenuItems`   | `Array<Object>` | Custom items for the slash menu.        |
-| `onChange`         | `function`      | Callback fired when content changes.    |
-
-## ✅ Testing
-
-Ensure your components work as expected using `react-scripts`.
-
-```bash
-npm test
-```
-
-## 📄 License
-
-MIT License © 2024 Hipster Santos
-
-## 📣 Contributing
-
-Contributions are welcome! Feel free to submit issues and pull requests.
-
-## 📊 Roadmap
-
-- [ ] Advanced collaboration features
-- [ ] Customizable themes
-- [ ] Plugin system support
-
-## 📫 Contact
-
-For questions or feedback, reach out via [GitHub Issues](https://github.com/HipsterSantos/blocknote-gadget/issues).
+MIT
 
