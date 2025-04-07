@@ -1,32 +1,22 @@
 import { filterSuggestionItems } from "@blocknote/core";
-import { useGadgetState } from "./state";
 
 export class GadgetApi {
-  constructor(editor) {
+  constructor(editor, state, dispatch) {
     this.editor = editor;
+    this.state = state;
+    this.dispatch = dispatch;
     this.ws = null;
     this.connectToServer();
     window.addEventListener("message", this.handleParentMessage.bind(this));
   }
 
-  // Access global state
-  getState() {
-    return useGadgetState().state;
-  }
-
-  getDispatch() {
-    return useGadgetState().dispatch;
-  }
-
-  // Post message to parent
   postToParent(data) {
     window.parent.postMessage(data, "*");
   }
 
-  // Event handlers
   eventHandlers = {
     CONFIGURE: async (payload) => {
-      this.getDispatch()({ type: "CONFIGURE", payload });
+      this.dispatch({ type: "CONFIGURE", payload });
       await this.configure(payload);
     },
     GET_CONTENT: async () => {
@@ -39,12 +29,12 @@ export class GadgetApi {
       await this.sendToServer({ type: "CONTENT_SET", content: payload });
     },
     SET_INITIAL_CONTENT: async (payload) => {
-      this.getDispatch()({ type: "SET_INITIAL_CONTENT", payload });
+      this.dispatch({ type: "SET_INITIAL_CONTENT", payload });
       this.editor.replaceBlocks(this.editor.document, payload);
       this.postToParent({ type: "INITIAL_CONTENT_SET" });
     },
     REGISTER_SLASH_ITEM: async (payload) => {
-      this.getDispatch()({ type: "REGISTER_SLASH_ITEM", payload });
+      this.dispatch({ type: "REGISTER_SLASH_ITEM", payload });
       this.postToParent({ type: "SLASH_ITEM_REGISTERED", payload: payload.title });
     },
     INSERT_BLOCK: async (payload) => {
@@ -68,7 +58,7 @@ export class GadgetApi {
   }
 
   async configure() {
-    const { serverUrl, protocol } = this.getState();
+    const { serverUrl, protocol } = this.state;
     await this.connectToServer(serverUrl, protocol);
   }
 
@@ -81,12 +71,12 @@ export class GadgetApi {
       this.ws = new WebSocket(serverUrl);
       await new Promise((resolve, reject) => {
         this.ws.onopen = () => {
-          this.getDispatch()({ type: "SERVER_CONNECTED" });
+          this.dispatch({ type: "SERVER_CONNECTED" });
           this.postToParent({ type: "SERVER_CONNECTED" });
           resolve();
         };
         this.ws.onerror = (err) => {
-          this.getDispatch()({ type: "SERVER_ERROR", payload: `WebSocket error: ${err.message}` });
+          this.dispatch({ type: "SERVER_ERROR", payload: `WebSocket error: ${err.message}` });
           this.postToParent({ type: "ERROR", payload: `WebSocket error: ${err.message}` });
           reject(err);
         };
@@ -103,18 +93,14 @@ export class GadgetApi {
   }
 
   async sendToServer(data) {
-    const { protocol } = this.getState();
+    const { protocol } = this.state;
     if (protocol === "ws" && this.ws && this.ws.readyState === WebSocket.OPEN) {
       this.ws.send(JSON.stringify(data));
     }
   }
 
-  registerSlashItem(payload) {
-    // Already handled by reducer
-  }
-
   getSlashMenuItems(query) {
-    const { slashItems } = this.getState();
+    const { slashItems } = this.state;
     const customItems = Array.from(slashItems.values()).map((item) => ({
       ...item,
       onItemClick: () => this.insertBlock(item.block),
